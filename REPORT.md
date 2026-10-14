@@ -148,7 +148,7 @@ TEST mất quãng đường 0.036403%, nhỏ hơn 5%. `harsh` đếm frame gia t
 
 Một chỉnh sửa nghe an toàn hơn không luôn giảm thất bại: trên cùng TRAIN, giảm `cautionV` từ 6 xuống 5 m/s làm `table[2].fail = 0.000291481249734` tăng thành `table[0].fail = 0.000490849574377` (~1.684 lần), trong khi progress giảm từ 188.361876 xuống 171.427227 m. Đây là so ước lượng điểm TRAIN, các cận còn giao nhau nên chưa chứng minh mức tăng về mặt thống kê. Cơ chế có thể giải thích là đổi tốc độ ego cũng đổi lúc nó đến khe xe C2, lúc C2 nhập làn và phản ứng của xe sau; thế giới phản ứng không giữ nguyên lịch giao thông khi ta chạy chậm hơn. Không suy ra quan hệ đơn điệu “càng chậm càng an toàn”.
 
-**So sánh 3D:** cần chọn cảnh có policy sửa tránh được và bóng mờ policy gốc. Các run hunt trong export chuẩn ghim policy gốc nên bóng mờ là bản sửa; để đúng chiều yêu cầu câu này, một file viewer so sánh riêng sẽ được tạo với policy sửa làm xe chính và baseline làm bóng mờ. Ảnh thật chưa có vì công cụ chặn mở file offline; trạng thái này được ghi rõ, không dùng ảnh minh họa thay thế.
+**So sánh 3D:** file bổ sung `evidence/fix_comparison.json` (định dạng avsim-viewer/1) có run **FIX-B-04**, xe chính dùng policy sửa, bóng mờ dùng policy gốc. Chạy kiểm tra riêng cùng params: B-04 gốc chạm C2 ở 12.6 s/frame 252, bản sửa không có sự kiện ego; ngược lại C-04 vẫn block ở 22.8 s/frame 456 dưới cả hai policy (`inspections.json: chosen_events`). Nhập file so sánh riêng ở chương 9, bật bóng mờ, dừng tại 12.6 s và lưu `shots/fix_ghost.png`. Các run hunt trong export chuẩn ghim policy gốc nên bóng mờ là bản sửa; file bổ sung đảo đúng chiều yêu cầu câu này. Đây là kiểm tra bổ sung từ params của cloud, không thay đổi TEST hay lựa chọn policy. Ảnh thật chưa có vì công cụ chặn mở file offline; không dùng ảnh minh họa thay thế.
 
 ## 7. Từ mô phỏng ra đường thật
 
@@ -180,7 +180,20 @@ Nếu có thêm một tuần: tăng số seed và ngân sách cho các kiểu IS
 
 **Exposure.** Người dùng xác nhận chưa có dữ liệu tần suất. `hazard.json: exposure = null` và `why` nói rõ điều này. Không tạo số ngoài đời từ giả định không có căn cứ. Khi có e lần rắc rối/chuyến, tần suất lỗi là e×P(lỗi | rắc rối); hiện chưa thể so một tần suất mỗi chuyến với `bus_bypass` trên cùng đơn vị.
 
-**Đánh giá.** Chờ `mine.json` đủ 1.500 lần rút để điền bảng baseline/chosen, accepted và khoảng Wilson. Phân loại sẽ tách `avoidable` (phanh tối đa ngay khi nguy hiểm đã bắt đầu và nhìn thấy), `unavoidable` (phanh như vậy vẫn va chạm), `unattributed` (va chạm không quy được cho hazard); `low_speed` là cờ chồng lên các nhóm, không phải nhóm thứ tư để cộng tổng.
+**Kết quả (`evidence/mine.json`).** `world = town`, `conditional_on = your town's traffic`; rút 1.500 lần, `infeasible = 3`, `accepted = 0.998` = 99.8%, n giữ lại 1.497 ở cả hai policy; `overlap_at_start = 0`. `exact.planner = [['ego', 'H0', 6.8]]` khớp cảnh cụ thể trong hazard.json.
+
+| Policy | n | crashes | avoidable | unavoidable | unattributed | low_speed | avoidable_foreknown | P(lỗi planner \| hazard) | Wilson 95% |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Gốc (`baseline`) | 1497 | 990 | 990 | 0 | 0 | 0 | 990 | 0.661322645291 | [0.636962615345, 0.684856822496] |
+| Sửa (`chosen`) | 1497 | 862 | 861 | 1 | 0 | 0 | 861 | 0.575150300601 | [0.549948166502, 0.599967720691] |
+
+`avoidable` là phanh tối đa ngay khi hazard đã bắt đầu **và nhìn thấy**; `unavoidable` là phanh như vậy vẫn va chạm; `unattributed` là va chạm không quy cho hazard. `low_speed` là cờ chồng lên các nhóm, không cộng như nhóm thứ tư. Xác suất lỗi chỉ dùng `avoidable/n`, không dùng tất cả crashes/n.
+
+Số lỗi tránh được giảm 129 (13.030303% tương đối), xác suất giảm 8.617234 điểm phần trăm. Nhưng bản sửa vẫn còn 861 lỗi tránh được và 1 va chạm không tránh được bằng oracle: mở rộng cutinLat giúp một phần, chưa giải quyết dự đoán hành lang lạng của xe đạp. `avoidable_foreknown - avoidable = 0` ở cả hai; trong sweep này oracle biết từ lúc bắt đầu không cứu thêm trường hợp nào so với oracle đợi nhìn thấy.
+
+Ví dụ `baseline.examples[0]`, `chosen.examples[0]` cùng params, sẽ export thành **GB-01/GC-01**: xe đạp bắt đầu và oracle phanh tại 3.65 s; cả hai planner vẫn chạm H0 ở **5.7 s/frame 114**. Tốc độ ego tại tiếp xúc giảm từ 7.667248249 xuống 3.672028303 m/s. Ảnh cần chụp `shots/hazard_bike.png`: chọn GB-01 hoặc GC-01 trong chương 9, dừng ở 5.7 s; hoặc mở cảnh cụ thể trong chương 10 và dừng 6.8 s/frame 136.
+
+**So tần suất mỗi chuyến.** Vì exposure chưa biết, chỉ có f_gốc(e) = 0.661322645291×e và f_sửa(e) = 0.575150300601×e; chưa có f đo ngoài đời. `bus_bypass` có trung vị IS 0.000887601458123 và MC 7/3.000 = 0.00233333333333 trong định nghĩa chuyến mô phỏng của lab. Điểm hòa theo trung vị IS là e ≈ 0.00134216099274 (gốc) hoặc 0.00154325131569 (sửa); theo MC là e ≈ 0.00352828282828 và 0.00405691056911. Đây là **ngưỡng tính toán nếu biết e**, không phải số exposure được ước lượng hay chọn để làm hazard nguy hiểm hơn. So sánh còn phụ thuộc miền uniform thử nghiệm có đại diện cho hazard ngoài đời hay không.
 
 **Giới hạn oracle.** `avoidable` là chuẩn lạc quan vì biết tác nhân nguy hiểm ngay khi nhìn thấy và phanh hết lực, nên có thể đếm nhiều hơn số lỗi planner thực tế có thể tránh với perception và phản ứng hữu hạn. Ngược lại chỉ thử phanh, không thử đánh lái, làm số tránh được nhỏ hơn nếu còn một đường thoát bằng lái. `avoidable_foreknown` còn phanh từ lúc hazard bắt đầu dù bị che; chênh lệch với `avoidable` đo ảnh hưởng che khuất.
 
