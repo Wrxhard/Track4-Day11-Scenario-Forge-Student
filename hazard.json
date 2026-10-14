@@ -1,0 +1,68 @@
+{
+  "format": "avsim-studio/1",
+  "params": {
+    "cutT0": 5.0,
+    "cutDur": 2.4,
+    "cutV": 15.0,
+    "pedT0": 9.6,
+    "pedV": 1.45,
+    "busGo": 17.5,
+    "cutDs": -4.0,
+    "tgT": 0.9,
+    "mu": 0.8,
+    "cutGap": null,
+    "cutBrake": 0.0,
+    "pedGap": null,
+    "pedLook": 0,
+    "civil": true
+  },
+  "policy": {
+    "v0": 12.5,
+    "T": 1.6,
+    "a": 1.4,
+    "b": 2.0,
+    "s0": 2.5,
+    "cautionV": 7.5,
+    "cautionRange": 55.0,
+    "pedBuffer": 2.5,
+    "cutinLat": 2.15
+  },
+  "ego": "planner",
+  "hazards": [
+    {
+      "type": "bike",
+      "x": 10,
+      "lane": "E2",
+      "d": 0.5,
+      "v": 4,
+      "swerve": 3.2,
+      "swDur": 2.3,
+      "t0": 0,
+      "trig": 12
+    }
+  ],
+  "space": {
+    "h0_x": [
+      -10,
+      30
+    ],
+    "h0_v": [
+      3.5,
+      4.5
+    ],
+    "h0_swerve": [
+      2.8,
+      3.2
+    ],
+    "h0_swDur": [
+      2.3,
+      2.8
+    ],
+    "h0_trig": [
+      10,
+      18
+    ]
+  },
+  "exposure": null,
+  "why": "Thiết kế phép thử xe đạp lạng tránh chướng ngại: vùng x=-10..30 m ở đoạn đường trước nút giao x=80 m; tốc độ 3.5..4.5 m/s (12.6..16.2 km/h), từ mép làn E2 d=0.5 m lạng 2.8..3.2 m trong 2.3..2.8 s để đi vào hành lang ego E1. Theo công thức cosine, gia tốc ngang cực đại pi^2*3.2/(2*2.3^2)=2.985 m/s^2, dưới giới hạn 3.0. Trigger 10..18 m khảo sát vùng phản ứng ngắn khi xe nhanh hơn bắt kịp xe đạp; uniform là thiết kế thử nghiệm, không phải phân phối đo ngoài đời. Người dùng xác nhận chưa có thống kê quan sát số xe đạp lạng mỗi chuyến nên exposure=null; chỉ báo xác suất có điều kiện và biểu thức exposure*p, không tự gán tần suất ngoài đời."
+}

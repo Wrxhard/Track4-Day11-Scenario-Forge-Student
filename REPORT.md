@@ -60,11 +60,23 @@ Mỗi kiểu bạn tìm thấy: một ảnh chụp trình xem 3D (chương 9) �
 
 ## 7. Từ mô phỏng ra đường thật
 
-Phân phối tự nhiên trong `space.py` là giả định. Chọn **ba** giả định ảnh hưởng nhiều nhất đến con số của bạn (ví dụ khe chấp nhận của xe chuyển làn, tỉ lệ người đi bộ ngó qua xe buýt, ma sát đường ướt). Với mỗi cái: dữ liệu thật nào sẽ thay nó, lấy từ đâu, và nếu nó sai thì con số của bạn sai theo hướng nào?
+Các phân phối trong `avsim/space.py` là giả định dạy học. Với thị trấn B, `p_bin = [0.30, 0.85, 0.15]`, `cut_gap_median = 12 m` (`space.VARIANTS`, không phải thống kê giao thông thật).
+
+| Giả định | Dữ liệu thay thế và nơi thu thập | Hướng sai lệch nếu giả định sai |
+|---|---|---|
+| Khe chấp nhận `cutGap` (lognormal, median 12 m, sigma 0.5) | Camera cố định tại điểm xe vượt xe buýt/chuyển làn; theo dõi quỹ đạo, tốc độ tương đối và khe tại lúc bắt đầu chuyển làn, phân tầng theo loại xe và trời mưa | Nếu người thật nhận khe nhỏ thường xuyên hơn, mô hình có thể đánh giá thấp `bus_bypass`/`cut_in`; khe lớn hơn thường làm giảm xung đột. Cần đo đồng thời thời gian chuyển làn, không chỉ một median. |
+| 85% người đi bộ ngó qua xe buýt (`pedLook`) và `pedGap` median 4.5 s | Video có góc nhìn vỉa hè tại bến xe buýt; gán nhãn hành động ngó, mức che khuất và thời gian tới xe gần nhất lúc bắt đầu băng qua | Nếu ít người ngó hơn 85%, bước ra khi xe đang gần sẽ phổ biến hơn và nguy cơ `crosswalk_block` có thể bị đánh giá thấp; tương tác đứng chờ/chắn lối khiến hướng tác động tổng thể cần đo lại. |
+| Đường ướt 30%, mu = 0.5 khi ướt / 0.8 khi khô | Nhật ký mưa và tình trạng mặt đường trên tuyến, kết hợp thử phanh có kiểm soát với đúng lốp/tải trọng để suy ra phân phối ma sát | Nếu đường thật trơn hơn hoặc tỷ lệ ướt cao hơn, quãng phanh dài hơn và mô hình thường đánh giá thấp nguy cơ. Cũng phải lọc lại tính khả thi: thấp mu làm một số chuyển làn không thể xảy ra. |
+
+Không chuyển xác suất của thị trấn mô phỏng trực tiếp thành mức an toàn ngoài đường trước khi hiệu chỉnh các phân phối và kiểm tra phụ thuộc giữa chúng.
 
 ## 8. Giới hạn
 
-Ba điều mà xác suất bạn báo **không** nói, ví dụ: thế giới chỉ có một con phố; người lái chỉ là IDM; cảm biến hoàn hảo trừ phần bị xe buýt che. Nếu được thêm một tuần, bạn sẽ đo gì tiếp?
+1. Mô phỏng chỉ có một con phố, bến xe buýt và một nút giao trong 24 s; xác suất không đại diện cho mọi tuyến đường, mật độ, thời tiết hay hành trình dài.
+2. Xe khác dùng IDM và các luật khe chấp nhận cố định; chưa mô hình đầy đủ người lái mất tập trung, phản ứng trễ, nhường nhau linh hoạt hoặc thay đổi ý định.
+3. Cảm biến nhận trạng thái gần như hoàn hảo ngoài quy tắc che khuất hình học; chưa có nhiễu định vị, phát hiện hụt hay độ trễ perception. Hazard dùng oracle phanh cũng không đại diện cho perception thật.
+
+Nếu có thêm một tuần: tăng số seed và ngân sách cho các kiểu IS suy biến, kiểm tra độ phủ các vùng thất bại bằng proposal rộng hơn; thu dữ liệu khe/che khuất/ma sát để phân tích độ nhạy; thử TEST độc lập với nhiễu và độ trễ cảm biến. Với kiểu chưa quan sát, muốn cận 3/(0.2n) < 10^-3 cần hơn 15.000 lần rút cho đúng kiểu, không thể chứng nhận bằng 400 mẫu.
 
 ## 9. Rắc rối của bạn (bước G + chương 10)
 
