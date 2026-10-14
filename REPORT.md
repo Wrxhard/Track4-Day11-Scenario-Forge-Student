@@ -131,7 +131,24 @@ Không cuộc săn nào tìm được `cut_in` hoặc `rear_ended` đúng kiểu
 
 ## 6. Sửa planner (bước E + 3D)
 
-`fix.json`: policy được chọn, `fail` và `fail_hi` trên TRAIN, trên TEST (`fail_hi_seen` và `fail_hi`), và của policy gốc trên TEST; vì sao `fail_hi` của bản sửa có thể lớn hơn `fail` của policy gốc dù bản sửa tốt hơn thật? quãng đường và số lần phanh gấp. Một ảnh chụp 3D có **bóng mờ** (policy gốc) cho một kịch bản mà bản sửa tránh được. Có núm chỉnh nào "nghe thì an toàn hơn" nhưng thực tế làm tăng thất bại? Giải thích bằng cách thế giới phản ứng lại.
+`evidence/fix.json: chosen.policy = {'cutinLat': 3.0}`. Các núm khác giữ mặc định; `cutinLat` từ 2.15 lên 3.0 m làm planner nhận C2 lấn ngang là xe dẫn sớm hơn. Chọn bằng TRAIN: lọc `progress ≥ 0.95×210.746632755 = 200.209301117 m`, rồi xếp `fail_hi` nhỏ nhất, hòa thì `progress` lớn nhất. `cutinLat = 3.3` có cùng `fail_hi` nhưng progress TRAIN thấp hơn một chút nên không thắng 3.0. Không dùng TEST để đổi lựa chọn và không thêm ứng viên sau khi thấy TEST.
+
+| Nguồn trong fix.json | fail | fail_hi_seen | fail_hi | progress (m) | harsh (frame) | unseen |
+|---|---:|---:|---:|---:|---:|---|
+| Gốc TRAIN | 0.00114763194093 | 0.00230265907484 | 0.00230265907484 | 210.746632755 | 8.714843750 | không |
+| Chọn TRAIN | 5.55067427644e-07 | 1.00312589003e-06 | 1.00312589003e-06 | 210.830298543 | 8.269531250 | bus_bypass |
+| Gốc TEST | 0.000697100207626 | 0.00141137377381 | 0.00269026943861 | 214.165453369 | 8.746000000 | không |
+| Chọn TEST | 3.92669882226e-07 | 7.15784224511e-07 | 0.038779611449 | 214.087490560 | 8.076333333 | bus_bypass |
+
+TRAIN chỉ sàng lọc vùng policy gốc thất bại. TEST dùng seed mới, săn lại theo từng policy và holdout tự nhiên 3.000 mẫu; vì thế không lấy TRAIN gần như không có va chạm làm chứng nhận. Ở TEST, `chosen_test.crosswalk_block.hits = 60`, `n = 400`, p=3.92669882226e-07; `chosen_test.bus_bypass.hits = 0`, cận `upper_zero_hits = 0.0375`. `other_crashes` của bản sửa có k=0/3.000, Wilson hi=0.0012788956648.
+
+Cận bản sửa là 0.0375 + 7.15784224511e-07 + 0.0012788956648 = 0.038779611449, lớn hơn ước lượng điểm policy gốc dù dữ liệu quan sát cho thấy mức giảm lớn. Phần lớn độ rộng do ngân sách không đủ để chứng nhận một kiểu đã không còn được thấy, không phải bằng chứng policy sửa có thêm 3.75% va chạm. `fail_hi_seen` chỉ mô tả các kiểu có hits, không phải cận đầy đủ cho cả policy.
+
+TEST mất quãng đường 0.036403%, nhỏ hơn 5%. `harsh` đếm frame gia tốc < -3 m/s² theo TODO 9, không đếm số đợt phanh độc lập; trung bình giảm từ 8.746000000 xuống 8.076333333 frame. Progress chỉ tính tới lần va chạm đầu, không thưởng phần chạy sau tai nạn.
+
+Một chỉnh sửa nghe an toàn hơn không luôn giảm thất bại: trên cùng TRAIN, giảm `cautionV` từ 6 xuống 5 m/s làm `table[2].fail = 0.000291481249734` tăng thành `table[0].fail = 0.000490849574377` (~1.684 lần), trong khi progress giảm từ 188.361876 xuống 171.427227 m. Đây là so ước lượng điểm TRAIN, các cận còn giao nhau nên chưa chứng minh mức tăng về mặt thống kê. Cơ chế có thể giải thích là đổi tốc độ ego cũng đổi lúc nó đến khe xe C2, lúc C2 nhập làn và phản ứng của xe sau; thế giới phản ứng không giữ nguyên lịch giao thông khi ta chạy chậm hơn. Không suy ra quan hệ đơn điệu “càng chậm càng an toàn”.
+
+**So sánh 3D:** cần chọn cảnh có policy sửa tránh được và bóng mờ policy gốc. Các run hunt trong export chuẩn ghim policy gốc nên bóng mờ là bản sửa; để đúng chiều yêu cầu câu này, một file viewer so sánh riêng sẽ được tạo với policy sửa làm xe chính và baseline làm bóng mờ. Ảnh thật chưa có vì công cụ chặn mở file offline; trạng thái này được ghi rõ, không dùng ảnh minh họa thay thế.
 
 ## 7. Từ mô phỏng ra đường thật
 
