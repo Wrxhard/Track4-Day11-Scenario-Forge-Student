@@ -28,7 +28,25 @@ Ví dụ `replay_only[0]`: `scenario = 2`, `contact = rear`; thế giới phản
 
 ## 2. Kịch bản bất khả thi (bước B)
 
-Liệt kê các luật trong `is_feasible` và căn cứ vật lý của từng luật (ma sát, gia tốc, tốc độ người). Trong `hunt.json`, cuộc săn nào sinh nhiều kịch bản bất khả thi nhất, và vì sao CEM lại bị kéo về phía đó? Điều gì xảy ra với ước lượng nếu bạn **đếm** chúng là va chạm?
+`lab11/feasible.py: is_feasible` loại kịch bản nếu vi phạm một trong các điều kiện:
+
+| Luật | Căn cứ |
+|---|---|
+| (pi/cutDur)² × 3.5/2 ≤ mu × 9.81; cutDur phải dương | Chuyển làn cosine rộng 3.5 m có gia tốc ngang cực đại như vế trái. Gia tốc không được vượt lực bám ngang quy đổi trên một đơn vị khối lượng. |
+| cutBrake ≤ mu × 9.81 | Phanh sau khi nhập làn không được vượt giới hạn bám lốp trong mô hình. |
+| pedV ≤ 2.5 m/s | Giới hạn người đi bộ của bài; tốc độ cao hơn không thuộc phạm vi người đi bộ mà lab mô hình hóa. |
+| 0 < cutV ≤ 22 m/s | Loại xe chuyển làn đứng yên/chạy ngược và tốc độ vượt giới hạn miền kịch bản (~79.2 km/h). Đây là giới hạn mô hình, không phải định luật vật lý phổ quát. |
+
+Mô hình kiểm tra bám ngang và dọc riêng, chưa kiểm tra vòng tròn ma sát khi đồng thời chuyển làn/phanh. CEM tối đa hóa nguy hiểm nên có xu hướng chọn chuyển làn nhanh, ma sát thấp, phanh mạnh. Bộ lọc phải chạy trước mô phỏng và elite; nếu tính cả chuyển làn/phanh không thể thực hiện là va chạm, xác suất sẽ bị thổi lên và proposal sẽ tập trung sai miền. `evidence/hunt.json` (mỗi cuộc săn 8×300 = 2.400 lần rút):
+
+| Cuộc săn | Bất khả thi bị loại (`infeasible`) | Kiểu thực tế tìm thấy (`found`) |
+|---|---:|---|
+| bus_bypass | 6 | {'bus_bypass': 193} |
+| cut_in | 3 | {'bus_bypass': 20} |
+| crosswalk_block | 11 | {'bus_bypass': 4, 'crosswalk_block': 39} |
+| rear_ended | 8 | {'bus_bypass': 12, 'crosswalk_block': 11} |
+
+`crosswalk_block` sinh nhiều bất khả thi nhất: **11/2.400**. Điểm stopping-room kéo proposal về biên nguy hiểm; đường ướt rút ngắn giới hạn bám, thời điểm/tốc độ chuyển làn và người đi bộ vẫn được lấy mẫu đồng thời. Không phải mọi mẫu có điểm nguy hiểm cao đều hợp vật lý. Các mẫu bị loại không được đưa vào elite, không được tính là va chạm.
 
 ## 3. Monte Carlo cho bạn biết gì (bước C1)
 
@@ -52,7 +70,20 @@ Bảng: với từng kiểu và từng seed trong `estimate.json`, ghi `p`, `hit
 
 ## 5. Các kiểu thất bại (bước C2 + 3D)
 
-Mỗi kiểu bạn tìm thấy: một ảnh chụp trình xem 3D (chương 9) ở đúng lúc va chạm, và một câu mô tả chuỗi sự kiện (ai thấy gì, ai chờ gì). Kiểu nào cuộc săn **không** tìm thấy, và bạn tin điều đó ở mức nào? Nếu chỉ chạy **một** cuộc săn chung cho mọi kiểu thì điều gì xảy ra (gợi ý: `hunt.json: found` của từng cuộc săn)?
+Hai kiểu tìm được: `bus_bypass` và `crosswalk_block`. Cột `found` ở phần 2 là tổng qua từng cuộc săn; một kịch bản có thể trùng miền giữa các cuộc săn, không cộng số đó thành xác suất.
+
+| Ví dụ sẽ được export | Sự kiện từ kiểm tra riêng `inspections.json` | Trạng thái ở thời điểm sự kiện | Ảnh cần chụp |
+|---|---|---|---|
+| B-04 | ego–C2, contact, t=12.6 s, frame 252 | ego x=91.438 m, v=4.287 m/s; C2 x=95.852 m, v=0 | `shots/bus_bypass.png` |
+| C-04 | ego–P1, block, t=22.8 s, frame 456 | ego x=121.602 m, v=0; P1 x=122 m, z=3.464 m, v=0 | `shots/crosswalk_block.png` |
+
+B-04: C2 muốn vượt xe buýt còn đỗ (`busGo = 16.0152664629 s`, sự kiện ở 12.6 s), nhận một khe và lấn từ E2 sang E1; C2 bị chậm/dừng ngay trong hành lang ego. Ego nhận xe dẫn muộn và đã phanh đến giới hạn đường ướt 4.905 m/s² nhưng vẫn chạm C2.
+
+C-04: P1 tới mép đường và bắt đầu qua khi chấp nhận khe ngắn (`pedGap = 1.7140166217 s`, `pedLook = 0`). Ego phanh nhưng dừng với thân xe tại vạch x=122 m, làm P1 phải dừng trước thân xe. Đây là **block**, không phải người đi bộ đi vào xe. Trong ví dụ này bus đã được lệnh đi từ 12.016 s, trước lúc P1 tới; không quy mọi crosswalk block cho việc bước ra sau một bus còn đỗ.
+
+Không cuộc săn nào tìm được `cut_in` hoặc `rear_ended` đúng kiểu. Chỉ kết luận **chưa tìm được trong ngân sách/điểm nguy hiểm này**, không kết luận chúng không tồn tại. Một cuộc săn chung dễ hội tụ vào `bus_bypass`: chính cuộc săn `cut_in` chỉ tìm 20 bus-bypass; cuộc săn `rear_ended` tìm 12 bus-bypass và 11 crosswalk-block. Săn riêng cho phép tiếp tục thăm dò miền P1 dù kiểu C2 dễ tìm hơn.
+
+**Ảnh chưa có:** công cụ trình duyệt chặn mở viewer offline `file://`. Các số và mô tả trên được kiểm tra từ Python; chưa được đối chiếu bằng ảnh chụp giao diện. Cần mở viewer chương 9, nhập `evidence/viewer.json` khi export xong, chọn B-04/C-04 và chụp đúng frame trong bảng; hướng dẫn ở `evidence/shots/README.md`. Không dùng ảnh mẫu của repo làm ảnh của lần chạy này.
 
 ## 6. Sửa planner (bước E + 3D)
 
@@ -80,13 +111,18 @@ Nếu có thêm một tuần: tăng số seed và ngân sách cho các kiểu IS
 
 ## 9. Rắc rối của bạn (bước G + chương 10)
 
-- **Rắc rối:** bạn dựng gì, và ngoài đời nó giống tình huống nào.
-- **Căn cứ:** vì sao bạn nghĩ planner sẽ xử lý kém.
-- **Giả định:** `space` và `exposure` lấy từ đâu (`hazard.json: why`).
-- **Kết quả**, theo `mine.json`:
-  - số va chạm `avoidable` (tránh được bằng phanh hết cỡ, biết trước), `unavoidable`, `unattributed`, và `low_speed`, với policy gốc và với policy bạn chọn; `accepted` (bao nhiêu phần `space` của bạn là khả thi);
-  - P(lỗi planner | rắc rối) kèm khoảng Wilson;
-  - tần suất mỗi chuyến, đặt cạnh tần suất lách xe buýt của bạn.
-- **Hình:** một ảnh chương 9 hoặc 10 ở lúc va chạm.
-- **Bạn tự lái thì sao:** nếu bạn đã thử lái, bạn tránh được không, và bạn làm gì khác planner?
-- **Cách sửa:** núm chỉnh nào sửa được rắc rối này? Nếu không núm nào sửa được, planner cần thêm **logic gì** (mô tả, không cần code)?
+**Thiết kế.** Xe đạp H0 đang đi sát mép phải làn E2, lạng sang E1 để tránh chướng ngại khi ego bắt kịp. Cảnh cụ thể `hazard.json`: x=10 m, v=4 m/s, d=0.5 m, swerve=3.2 m, swDur=2.3 s, trig=12 m. Đây là cảnh do tôi dựng từ schema của studio và kiểm tra bằng Python; chưa thao tác dựng trong giao diện chương 10 vì công cụ trình duyệt không mở được file offline. File giữ định dạng `avsim-studio/1`, đầy đủ params/policy/hazards để nhập vào viewer.
+
+**Giả thuyết.** Planner coi một tác nhân là xe dẫn dựa trên khoảng lệch ngang hiện tại, nhưng chưa dự đoán toàn bộ hành lang quét của xe đạp đang lạng. Ego có thể giữ tốc độ đến khi xe đạp đã đi gần vào làn, trong khi phanh hết cỡ từ lúc bắt đầu nhìn thấy chuyển động vẫn tránh được.
+
+**Miền thử (`hazard.json: space`, `why`).** x từ -10 đến 30 m, v từ 3.5 đến 4.5 m/s, swerve từ 2.8 đến 3.2 m, swDur từ 2.3 đến 2.8 s, trig từ 10 đến 18 m. Đoạn này nằm trước nút giao x=80 m. Tốc độ tương ứng 12.6–16.2 km/h; gia tốc ngang cực đại của cả miền là pi²×3.2/(2×2.3²) = 2.9851355466 m/s², dưới ngưỡng 3. Uniform là thiết kế phép thử nhạy cảm, chưa phải phân phối đo trên đường.
+
+**Exposure.** Người dùng xác nhận chưa có dữ liệu tần suất. `hazard.json: exposure = null` và `why` nói rõ điều này. Không tạo số ngoài đời từ giả định không có căn cứ. Khi có e lần rắc rối/chuyến, tần suất lỗi là e×P(lỗi | rắc rối); hiện chưa thể so một tần suất mỗi chuyến với `bus_bypass` trên cùng đơn vị.
+
+**Đánh giá.** Chờ `mine.json` đủ 1.500 lần rút để điền bảng baseline/chosen, accepted và khoảng Wilson. Phân loại sẽ tách `avoidable` (phanh tối đa ngay khi nguy hiểm đã bắt đầu và nhìn thấy), `unavoidable` (phanh như vậy vẫn va chạm), `unattributed` (va chạm không quy được cho hazard); `low_speed` là cờ chồng lên các nhóm, không phải nhóm thứ tư để cộng tổng.
+
+**Giới hạn oracle.** `avoidable` là chuẩn lạc quan vì biết tác nhân nguy hiểm ngay khi nhìn thấy và phanh hết lực, nên có thể đếm nhiều hơn số lỗi planner thực tế có thể tránh với perception và phản ứng hữu hạn. Ngược lại chỉ thử phanh, không thử đánh lái, làm số tránh được nhỏ hơn nếu còn một đường thoát bằng lái. `avoidable_foreknown` còn phanh từ lúc hazard bắt đầu dù bị che; chênh lệch với `avoidable` đo ảnh hưởng che khuất.
+
+**Tự lái và ảnh.** Chưa thực hiện tự lái; không nhận kết quả oracle là khả năng lái của mình. Ảnh 3D phải chụp từ viewer khi nhập evidence, ở frame va chạm; chưa có ảnh vì giới hạn công cụ mở file offline.
+
+**Hướng sửa.** Tăng ngưỡng nhận xe lấn làn (`cutinLat`) có thể giúp nhận xe đạp sớm, nhưng phải đánh giá TRAIN/TEST và ảnh hưởng giao thông. Logic cần bổ sung là dự đoán hành lang chuyển động ngang của xe đạp, kiểm tra giao nhau với hành lang ego theo thời gian, phanh sớm nếu khoảng dừng an toàn sắp bị mất; thêm dữ liệu ý định và độ bất định thay vì chỉ nới một ngưỡng khoảng cách.
