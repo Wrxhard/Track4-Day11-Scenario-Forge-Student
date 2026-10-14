@@ -2,13 +2,29 @@ MSSV: 2A202602552
 
 # Lab 11 · Scenario Forge — báo cáo
 
-Mỗi câu: trả lời ngắn, **trích số từ `evidence/`** (ghi tên file và trường, ví dụ `mc.json: crashes = 4`). Grader chạy lại với MSSV của bạn; số không khớp `evidence/` thì mất điểm phần D (RUBRIC), và câu dựa trên số sai khó được điểm đầy đủ. Không cần văn hay: một bảng nhỏ và hai, ba câu giải thích là đủ.
+Thị trấn **B** (`evidence/meta.json: _run.town`); MSSV gốc: `2A202602552`.
 
-Thị trấn của bạn (`meta.json: _run.town`): 
+Hoàn thiện 10 TODO; `python -m pytest -q` đạt **41 passed in 70.54s**, gồm parity Python–JavaScript. Môi trường: numpy 2.3.2, pytest 8.4.2, Node v22.18.0. Evidence chạy đủ ngân sách, không dùng `--quick`. Báo cáo được cập nhật và commit theo từng checkpoint.
+
+MSSV có chữ A, khác định dạng chỉ chữ số mà starter đọc từ REPORT. Giữ nguyên mã đúng và dùng biến môi trường có sẵn của grader, không sửa runner hay seed:
+
+```powershell
+$env:LAB11_MSSV = '2A202602552'
+python run_all.py all
+```
 
 ## 1. Phát lại log có trung thực không? (bước A)
 
-Trong `replay.json`: bao nhiêu kịch bản bị bỏ vì người lái gây va chạm, bao nhiêu va chạm khi planner chạy trên log phát lại, bao nhiêu trong thế giới phản ứng, theo từng loại tiếp xúc. Giải thích vì sao phần lớn va chạm của "phát lại" là `rear`, và vì sao đó là va chạm **giả**. Chọn một kịch bản trong `replay_only` và nói chuyện gì đã xảy ra.
+`evidence/replay.json`: `n = 400`, `dropped_human_crash_logs = 0`, `n_used = 400`, `crash_in_both = 0`.
+
+| Môi trường | Tổng va chạm | front | rear | side |
+|---|---:|---:|---:|---:|
+| Phát lại (`replay`) | 121 | 0 | 109 | 12 |
+| Phản ứng (`reactive`) | 1 | 1 | 0 | 0 |
+
+109/121 va chạm phát lại là từ phía sau. Planner có thể phanh sớm hơn người lái trong log, nhưng xe sau vẫn đi đúng quỹ đạo đã ghi: nó không phản ứng với vị trí và vận tốc mới của ego. Vì vậy va chạm phản ánh sự không tương thích của log với planner, không phải lỗi tương ứng trong thế giới phản ứng.
+
+Ví dụ `replay_only[0]`: `scenario = 2`, `contact = rear`; thế giới phản ứng không va chạm, `min_ttc_reactive = 7.460629498692649 s`. Chạy kiểm tra riêng đúng params của ví dụ cho sự kiện ego–TG tại **17.65 s**, frame **353**, `fake = true`: TG trong log đi vào đuôi ego đang chậm lại. Thời gian/frame này lấy từ lần chạy kiểm tra riêng, không phải trường của `replay.json`; ví dụ sẽ được export thành R-01 để xem lại.
 
 ## 2. Kịch bản bất khả thi (bước B)
 
