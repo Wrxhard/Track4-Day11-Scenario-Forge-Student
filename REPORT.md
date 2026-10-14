@@ -66,7 +66,51 @@ Xấp xỉ độ rộng tương đối ±20%: n ≈ 1.96²(1-p)/(0.2²p) = **41,
 
 ## 4. Importance sampling, ESS và độ suy biến (bước C3)
 
-Bảng: với từng kiểu và từng seed trong `estimate.json`, ghi `p`, `hits`, `ess`, `top_share`. Ba seed có đồng ý với nhau không, và có đồng ý với Monte Carlo không? Ở đâu `top_share` lớn (> 0,5), và vì sao khi đó con số thực ra chỉ là trọng số của một mẫu? So ngân sách (`budget`) với số lần chạy Monte Carlo cần để có cùng độ chính xác. Phần `other` trong tổng lấy từ đâu, và vì sao không săn nó?
+`evidence/estimate.json: seeds[].per` (mỗi hàng n=600, beta=0.2):
+
+| Kiểu | seed | p / cận khi chưa thấy | hits | ESS | top_share |
+|---|---:|---:|---:|---:|---:|
+| bus_bypass | 0 | 0.0007417118054 | 42 | 136.09531018 | 0.11196421 |
+| cut_in | 0 | chưa thấy; ≤ 0.025 | 0 | 133.68510771 | 0.00000000 |
+| crosswalk_block | 0 | 1.928884788e-06 | 63 | 121.35499583 | 0.64968251 |
+| rear_ended | 0 | chưa thấy; ≤ 0.025 | 0 | 122.19581281 | 0.00000000 |
+| bus_bypass | 1 | 0.001112942203 | 54 | 140.49957035 | 0.24315900 |
+| cut_in | 1 | chưa thấy; ≤ 0.025 | 0 | 105.30566683 | 0.00000000 |
+| crosswalk_block | 1 | 4.187815365e-06 | 63 | 121.90355441 | 0.73867728 |
+| rear_ended | 1 | chưa thấy; ≤ 0.025 | 0 | 110.50852268 | 0.00000000 |
+| bus_bypass | 2 | 0.0008876014581 | 49 | 129.49278747 | 0.15385034 |
+| cut_in | 2 | chưa thấy; ≤ 0.025 | 0 | 113.72639507 | 0.00000000 |
+| crosswalk_block | 2 | 8.197776373e-07 | 73 | 130.12033034 | 0.37327580 |
+| rear_ended | 2 | chưa thấy; ≤ 0.025 | 0 | 106.13591015 | 0.00000000 |
+
+Các hàng chưa thấy có `top_share = 0` do không có đóng góp, không phải bằng chứng ước lượng ổn định. Cận đúng là `upper_zero_hits = 3/(0.2×600) = 0.025`; không dùng 3/ESS và không nhận [0,0] trong trường CI xấp xỉ là khoảng xác suất thật.
+
+| seed | `total` (ước lượng điểm) | `lo` | `hi` |
+|---|---:|---:|---:|
+| 0 | 0.000743640690175 | 0.000390865002166 | 0.00237531204299 |
+| 1 | 0.00111713001847 | 0.000389770509916 | 0.00312338519182 |
+| 2 | 0.000888421235761 | 0.000425395425363 | 0.00263034271096 |
+
+Tổng qua seed lệch tối đa khoảng 1.502 lần; `bus_bypass` khoảng 1.501 lần; `crosswalk_block` khoảng 5.108 lần. Trung vị tổng 0.000888421235761, thấp hơn MC 2.626 lần. Khoảng tổng IS vẫn giao với Wilson của MC, nhưng ba ước lượng điểm đều thấp hơn cận Wilson dưới của MC; không kết luận hai phương pháp đã đồng ý chính xác.
+
+`crosswalk_block` seed 0 (`top_share = 0.64968251`) và seed 1 (`0.73867728`) vượt 0.5: một mẫu quyết định hơn nửa tổng w×y. Nhiều hits dưới q vẫn có thể có trọng số p/q rất nhỏ; số hits không bảo đảm thông tin dưới p. CI ±1.96se khi đó có thể hẹp sai. Seed 2 top_share thấp hơn cũng không loại trừ một miền va chạm hoàn toàn chưa được q thăm dò. Dùng proposal từ lần elite đầu tiên đủ va chạm giúp hạn chế co q nhưng không chứng minh độ phủ.
+
+`budget = 16800` = 4×(8×300 + 3×600), gồm 9.600 lần săn và 7.200 lần ước lượng. So với khoảng 41.064 lần MC cho mục tiêu ±20% ở phần 3, ngân sách này nhỏ hơn 2.444 lần, nhưng IS hiện **chưa đạt mục tiêu ±20%**: riêng bus-bypass có 1.96se/p khoảng 47.6%, 65.4%, 52.2%.
+
+So cùng sai số chuẩn quan sát, số MC tương đương được suy ra bằng n_MC ≈ p(1-p)/se_IS² (tính từ các trường p/se của từng hàng, không phải lần chạy thật):
+
+| Kiểu | seed | n_MC xấp xỉ |
+|---|---:|---:|
+| bus_bypass | 0 | 22,880 |
+| crosswalk_block | 0 | 1,160,118 |
+| bus_bypass | 1 | 8,073 |
+| crosswalk_block | 1 | 430,910 |
+| bus_bypass | 2 | 15,891 |
+| crosswalk_block | 2 | 7,051,769 |
+
+Đây là so sánh chi phí có điều kiện trên ước lượng IS hiện có, không chứng nhận hiệu quả khi proposal bỏ sót vùng thất bại.
+
+`estimate.json: other` lấy từ `mc.json`, `k=0`, `n=3000`, `hi=0.0012788956648`. Báo other chưa quan sát, p ≤ cận này. Không săn other vì không có một cơ chế/điểm nguy hiểm thống nhất; bỏ nó khỏi tổng sẽ làm phân hoạch thất bại không đầy đủ. `seeds[].hi` của runner cộng cận other khi k=0, nhưng không cộng các cận 0.025 của cut-in/rear-ended chưa thấy. Vì vậy bảng khoảng tổng trên là đầu ra xấp xỉ của runner, không phải chứng nhận mọi kiểu hiếm đều đã được khống chế.
 
 ## 5. Các kiểu thất bại (bước C2 + 3D)
 
