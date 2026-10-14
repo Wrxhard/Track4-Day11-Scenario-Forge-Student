@@ -32,7 +32,19 @@ Liệt kê các luật trong `is_feasible` và căn cứ vật lý của từng 
 
 ## 3. Monte Carlo cho bạn biết gì (bước C1)
 
-`mc.json`: k, n, p̂ và khoảng Wilson 95 %. Với p̂ đó, cần bao nhiêu lần chạy để khoảng tin cậy hẹp lại còn ±20 % của p? Có kiểu thất bại nào **chưa hề xuất hiện** trong 3 000 lần chạy không? Con số đúng cần báo cho kiểu đó là gì?
+`evidence/mc.json`: `crashes = 7`, `n = 3000`, `p = 0.00233333333333`; Wilson 95% **[0.0011307176584, 0.0048088764933]**; `infeasible = 17`. Kịch bản bất khả thi không chạy và không tính là thất bại; mẫu số theo định nghĩa pipeline vẫn là 3.000 lần rút tự nhiên.
+
+| Kiểu (`per_mode`) | k | Wilson lo | Wilson hi |
+|---|---:|---:|---:|
+| bus_bypass | 7 | 0.001130717658 | 0.004808876493 |
+| cut_in | 0 | 0 | 0.001278895665 |
+| crosswalk_block | 0 | 0 | 0.001278895665 |
+| rear_ended | 0 | 0 | 0.001278895665 |
+| other | 0 | 0 | 0.001278895665 |
+
+Xấp xỉ độ rộng tương đối ±20%: n ≈ 1.96²(1-p)/(0.2²p) = **41,064** lần chạy; xấp xỉ hiếm n ≈ 96/p ≈ 41,143. Đây chỉ là kế hoạch ngân sách dựa trên p ước lượng từ 7 sự kiện, chưa phải bảo đảm độ chính xác.
+
+`cut_in`, `crosswalk_block`, `rear_ended`, `other` chưa xuất hiện. Không kết luận chúng không thể xảy ra: báo **p ≤ 0.0012788956648** theo cận trên Wilson của 0/3.000, thay vì xác suất bằng 0. Khoảng chuẩn ở k=0 suy biến thành [0,0] nên không dùng.
 
 ## 4. Importance sampling, ESS và độ suy biến (bước C3)
 
