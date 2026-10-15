@@ -54,7 +54,8 @@
       0.0,
       0.0
     ],
-    "first_ped_seen_frame": 0
+    "first_ped_seen_frame": 0,
+    "chosen_events": []
   },
   "C-04": {
     "mode": "crosswalk_block",
@@ -111,6 +112,18 @@
       0.0,
       0.0
     ],
-    "first_ped_seen_frame": 0
+    "first_ped_seen_frame": 0,
+    "chosen_events": [
+      {
+        "t": 22.8,
+        "f": 456,
+        "a": "ego",
+        "b": "P1",
+        "kind": "block",
+        "x": 121.80091857910156,
+        "z": 2.6070141792297363,
+        "fake": false
+      }
+    ]
   }
 }

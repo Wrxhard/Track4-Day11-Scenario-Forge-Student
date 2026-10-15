@@ -4,7 +4,7 @@ MSSV: 2A202602552
 
 Thị trấn **B** (`evidence/meta.json: _run.town`); MSSV gốc: `2A202602552`.
 
-Hoàn thiện 10 TODO; `python -m pytest -q` đạt **41 passed in 70.54s**, gồm parity Python–JavaScript. Môi trường: numpy 2.3.2, pytest 8.4.2, Node v22.18.0. Evidence chạy đủ ngân sách, không dùng `--quick`. Báo cáo được cập nhật và commit theo từng checkpoint.
+Hoàn thiện 10 TODO; `python -m pytest -q` đạt **41 passed in 70.54s**, gồm parity Python–JavaScript. Môi trường: numpy 2.3.2, pytest 8.4.2, Node v22.18.0. `run_all.py all` đã hoàn tất toàn bộ world → replay → mc → hunt → estimate → fix → mine → export, exit code 0; ngân sách đầy đủ, không dùng `--quick`. Báo cáo được cập nhật và commit/push theo từng checkpoint. **Còn thiếu ảnh chụp 3D thật**; exposure chưa biết theo xác nhận của người dùng, được giữ `null` và báo bằng công thức thay vì tự gán số.
 
 MSSV có chữ A, khác định dạng chỉ chữ số mà starter đọc từ REPORT. Giữ nguyên mã đúng và dùng biến môi trường có sẵn của grader, không sửa runner hay seed:
 
@@ -24,7 +24,7 @@ python run_all.py all
 
 109/121 va chạm phát lại là từ phía sau. Planner có thể phanh sớm hơn người lái trong log, nhưng xe sau vẫn đi đúng quỹ đạo đã ghi: nó không phản ứng với vị trí và vận tốc mới của ego. Vì vậy va chạm phản ánh sự không tương thích của log với planner, không phải lỗi tương ứng trong thế giới phản ứng.
 
-Ví dụ `replay_only[0]`: `scenario = 2`, `contact = rear`; thế giới phản ứng không va chạm, `min_ttc_reactive = 7.460629498692649 s`. Chạy kiểm tra riêng đúng params của ví dụ cho sự kiện ego–TG tại **17.65 s**, frame **353**, `fake = true`: TG trong log đi vào đuôi ego đang chậm lại. Thời gian/frame này lấy từ lần chạy kiểm tra riêng, không phải trường của `replay.json`; ví dụ sẽ được export thành R-01 để xem lại.
+Ví dụ `replay_only[0]`: `scenario = 2`, `contact = rear`; thế giới phản ứng không va chạm, `min_ttc_reactive = 7.460629498692649 s`. Chạy kiểm tra riêng đúng params của ví dụ cho sự kiện ego–TG tại **17.65 s**, frame **353**, `fake = true`: TG trong log đi vào đuôi ego đang chậm lại. Thời gian/frame này lấy từ lần chạy kiểm tra riêng, không phải trường của `replay.json`; ví dụ đã được export thành R-01 để xem lại.
 
 ## 2. Kịch bản bất khả thi (bước B)
 
@@ -116,7 +116,7 @@ So cùng sai số chuẩn quan sát, số MC tương đương được suy ra b�
 
 Hai kiểu tìm được: `bus_bypass` và `crosswalk_block`. Cột `found` ở phần 2 là tổng qua từng cuộc săn; một kịch bản có thể trùng miền giữa các cuộc săn, không cộng số đó thành xác suất.
 
-| Ví dụ sẽ được export | Sự kiện từ kiểm tra riêng `inspections.json` | Trạng thái ở thời điểm sự kiện | Ảnh cần chụp |
+| Run trong export | Sự kiện từ kiểm tra riêng `inspections.json` | Trạng thái ở thời điểm sự kiện | Ảnh cần chụp |
 |---|---|---|---|
 | B-04 | ego–C2, contact, t=12.6 s, frame 252 | ego x=91.438 m, v=4.287 m/s; C2 x=95.852 m, v=0 | `shots/bus_bypass.png` |
 | C-04 | ego–P1, block, t=22.8 s, frame 456 | ego x=121.602 m, v=0; P1 x=122 m, z=3.464 m, v=0 | `shots/crosswalk_block.png` |
@@ -127,7 +127,7 @@ C-04: P1 tới mép đường và bắt đầu qua khi chấp nhận khe ngắn 
 
 Không cuộc săn nào tìm được `cut_in` hoặc `rear_ended` đúng kiểu. Chỉ kết luận **chưa tìm được trong ngân sách/điểm nguy hiểm này**, không kết luận chúng không tồn tại. Một cuộc săn chung dễ hội tụ vào `bus_bypass`: chính cuộc săn `cut_in` chỉ tìm 20 bus-bypass; cuộc săn `rear_ended` tìm 12 bus-bypass và 11 crosswalk-block. Săn riêng cho phép tiếp tục thăm dò miền P1 dù kiểu C2 dễ tìm hơn.
 
-**Ảnh chưa có:** công cụ trình duyệt chặn mở viewer offline `file://`. Các số và mô tả trên được kiểm tra từ Python; chưa được đối chiếu bằng ảnh chụp giao diện. Cần mở viewer chương 9, nhập `evidence/viewer.json` khi export xong, chọn B-04/C-04 và chụp đúng frame trong bảng; hướng dẫn ở `evidence/shots/README.md`. Không dùng ảnh mẫu của repo làm ảnh của lần chạy này.
+**Ảnh chưa có:** công cụ trình duyệt chặn mở viewer offline `file://`. Các số và mô tả trên được kiểm tra từ Python; chưa được đối chiếu bằng ảnh chụp giao diện. Cần mở viewer chương 9, nhập `evidence/viewer.json`, chọn B-04/C-04 và chụp đúng frame trong bảng; hướng dẫn ở `evidence/shots/README.md`. Không dùng ảnh mẫu của repo làm ảnh của lần chạy này.
 
 ## 6. Sửa planner (bước E + 3D)
 
@@ -191,7 +191,7 @@ Nếu có thêm một tuần: tăng số seed và ngân sách cho các kiểu IS
 
 Số lỗi tránh được giảm 129 (13.030303% tương đối), xác suất giảm 8.617234 điểm phần trăm. Nhưng bản sửa vẫn còn 861 lỗi tránh được và 1 va chạm không tránh được bằng oracle: mở rộng cutinLat giúp một phần, chưa giải quyết dự đoán hành lang lạng của xe đạp. `avoidable_foreknown - avoidable = 0` ở cả hai; trong sweep này oracle biết từ lúc bắt đầu không cứu thêm trường hợp nào so với oracle đợi nhìn thấy.
 
-Ví dụ `baseline.examples[0]`, `chosen.examples[0]` cùng params, sẽ export thành **GB-01/GC-01**: xe đạp bắt đầu và oracle phanh tại 3.65 s; cả hai planner vẫn chạm H0 ở **5.7 s/frame 114**. Tốc độ ego tại tiếp xúc giảm từ 7.667248249 xuống 3.672028303 m/s. Ảnh cần chụp `shots/hazard_bike.png`: chọn GB-01 hoặc GC-01 trong chương 9, dừng ở 5.7 s; hoặc mở cảnh cụ thể trong chương 10 và dừng 6.8 s/frame 136.
+Ví dụ `baseline.examples[0]`, `chosen.examples[0]` cùng params, đã export thành **GB-01/GC-01**: xe đạp bắt đầu và oracle phanh tại 3.65 s; cả hai planner vẫn chạm H0 ở **5.7 s/frame 114**. Tốc độ ego tại tiếp xúc giảm từ 7.667248249 xuống 3.672028303 m/s. Ảnh cần chụp `shots/hazard_bike.png`: chọn GB-01 hoặc GC-01 trong chương 9, dừng ở 5.7 s; hoặc mở cảnh cụ thể trong chương 10 và dừng 6.8 s/frame 136.
 
 **So tần suất mỗi chuyến.** Vì exposure chưa biết, chỉ có f_gốc(e) = 0.661322645291×e và f_sửa(e) = 0.575150300601×e; chưa có f đo ngoài đời. `bus_bypass` có trung vị IS 0.000887601458123 và MC 7/3.000 = 0.00233333333333 trong định nghĩa chuyến mô phỏng của lab. Điểm hòa theo trung vị IS là e ≈ 0.00134216099274 (gốc) hoặc 0.00154325131569 (sửa); theo MC là e ≈ 0.00352828282828 và 0.00405691056911. Đây là **ngưỡng tính toán nếu biết e**, không phải số exposure được ước lượng hay chọn để làm hazard nguy hiểm hơn. So sánh còn phụ thuộc miền uniform thử nghiệm có đại diện cho hazard ngoài đời hay không.
 
@@ -200,3 +200,12 @@ Ví dụ `baseline.examples[0]`, `chosen.examples[0]` cùng params, sẽ export 
 **Tự lái và ảnh.** Chưa thực hiện tự lái; không nhận kết quả oracle là khả năng lái của mình. Ảnh 3D phải chụp từ viewer khi nhập evidence, ở frame va chạm; chưa có ảnh vì giới hạn công cụ mở file offline.
 
 **Hướng sửa.** Tăng ngưỡng nhận xe lấn làn (`cutinLat`) có thể giúp nhận xe đạp sớm, nhưng phải đánh giá TRAIN/TEST và ảnh hưởng giao thông. Logic cần bổ sung là dự đoán hành lang chuyển động ngang của xe đạp, kiểm tra giao nhau với hành lang ego theo thời gian, phanh sớm nếu khoảng dừng an toàn sắp bị mất; thêm dữ liệu ý định và độ bất định thay vì chỉ nới một ngưỡng khoảng cách.
+
+
+### Checkpoint F · Dữ liệu xem lại và kiểm tra nộp bài
+
+`evidence/viewer.json` có **17 runs** (4 bus-bypass, 4 crosswalk-block, 3 replay, 3 hazard baseline, 3 hazard chosen) và **6.000 điểm cloud**. `evidence/fix_comparison.json` bổ sung 1 run FIX-B-04, đã kiểm tra bản sửa không va chạm ego trên đúng params gốc; dùng để chụp ảnh có bóng mờ baseline đúng yêu cầu phần 6. File bổ sung không thay thế hay thay đổi đầu ra pipeline chuẩn.
+
+Đã kiểm tra provenance MSSV/thị trấn/seed, `quick=false` ở mọi bước, đủ ngân sách, chọn policy theo TRAIN, tổng các nhóm hazard khớp crashes và p=avoidable/n; đủ 9 phần báo cáo. Các file simulator, runner, phân phối tự nhiên, bộ test và các policy ứng viên gốc không bị sửa. Test đầy đủ đã đạt 41/41; pipeline đầy đủ exit 0.
+
+Các phần cần bổ sung bằng thao tác thật: chụp 4 ảnh trong `evidence/shots/README.md`; chưa tự lái nên không nhận đã tự lái tránh được; nếu có dữ liệu tần suất thật, bổ sung exposure/why rồi chạy lại mine/export và cập nhật phần 9 bằng một checkpoint mới. Chưa thể coi bản hiện tại là đã đủ tất cả yêu cầu ảnh của rubric.
